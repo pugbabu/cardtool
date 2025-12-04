@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小红书全能卡片工厂 (封面+正文)</title>
+    <title>小红书作图全能卡片工厂 V10</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <style>
         :root {
             --primary: #2A00FF;
-            --primary-light: rgba(42, 0, 255, 0.1); 
+            --primary-light: rgba(42, 0, 255, 0.1);
             --bg-light: #F2F4F8;
             --border: #E0E0E0;
             --text-main: #333;
@@ -17,173 +18,654 @@
             --card-h: 800px;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: var(--bg-light); font-family: 'PingFang SC', sans-serif; color: var(--text-main); height: 100vh; overflow: hidden; }
-        
-        /* 布局框架 */
-        .app-container { display: flex; height: 100vh; max-width: 1800px; margin: 0 auto; }
-        
-        /* 左侧配置栏 */
-        .config-panel { width: 460px; background: #fff; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; box-shadow: 2px 0 10px rgba(0,0,0,0.05); }
-        .panel-header { padding: 20px; border-bottom: 1px solid var(--border); }
-        .tab-group { display: flex; background: #f0f0f0; padding: 4px; border-radius: 8px; margin-top: 15px; }
-        .tab-btn { flex: 1; border: none; background: none; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; color: #666; transition: 0.2s; }
-        .tab-btn.active { background: #fff; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-
-        .panel-body { flex: 1; overflow-y: auto; padding: 20px; }
-        .config-section { display: none; }
-        .config-section.active { display: block; }
-
-        /* 表单组件 */
-        .form-group { margin-bottom: 20px; }
-        .form-label { font-size: 13px; font-weight: 700; color: #555; margin-bottom: 8px; display: block; }
-        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; transition: 0.2s; }
-        .form-control:focus { border-color: var(--primary); outline: none; }
-        
-        /* 颜色选择 */
-        .color-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
-        .color-dot { padding-bottom: 100%; border-radius: 50%; cursor: pointer; position: relative; border: 2px solid transparent; transition: transform 0.2s; }
-        .color-dot.active { transform: scale(1.1); border-color: #333; }
-
-        /* 表情选择器 */
-        .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; background: #f9f9f9; padding: 10px; border-radius: 8px; margin-top: 5px; }
-        .emoji-btn { border: none; background: none; font-size: 20px; cursor: pointer; padding: 4px; border-radius: 4px; }
-        .emoji-btn:hover { background: #eee; }
-
-        /* 模板选择卡片 */
-        .template-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .template-card { border: 2px solid #eee; border-radius: 6px; padding: 10px; text-align: center; cursor: pointer; font-size: 12px; }
-        .template-card.active { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
-        .template-preview-box { height: 40px; background: #ddd; margin-bottom: 5px; border-radius: 4px; }
-
-        /* 右侧预览区 */
-        .preview-area { flex: 1; background: #E1E4E8; display: flex; justify-content: center; align-items: center; padding: 40px; overflow: hidden; }
-        
-        /* 核心定位 */
-        .canvas-wrapper { 
-            position: relative; 
-            width: var(--card-w);
-            height: var(--card-h);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.15); 
-            border-radius: 12px; 
-            overflow: hidden; 
-            transform-origin: center center;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        /* 画布通用 */
-        .xhs-canvas { 
-            width: var(--card-w); 
-            height: var(--card-h); 
-            background: #fff; 
-            position: absolute; 
+
+        body {
+            background: var(--bg-light);
+            font-family: 'PingFang SC', sans-serif;
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 推广引流信息固定头部 */
+        .marketing-header {
+            padding: 10px 40px;
+            background: #f7f7f7;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            height: 40px;
+            flex-shrink: 0;
+            position: sticky;
             top: 0;
-            left: 0;
-            overflow: hidden; 
-            display: none; 
-        }
-        .xhs-canvas.active { 
-            display: flex; 
+            z-index: 20;
         }
 
-        /* === 封面设计样式 (保持不变) === */
-        .cover-canvas { flex-direction: column; color: #fff; }
-        .tpl-thinking { background: var(--primary); justify-content: center; align-items: center; padding: 60px; text-align: center; }
-        .tpl-thinking .cover-icon { font-size: 120px; margin-bottom: 30px; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2)); }
-        .tpl-thinking .cover-title { font-size: 72px; font-weight: 900; line-height: 1.2; text-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .tpl-thinking .cover-subtitle { background: #fff; color: var(--primary); padding: 10px 30px; border-radius: 50px; font-size: 28px; font-weight: 700; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .tpl-tutorial { background: #f5f5f7; padding: 40px; }
-        .tpl-tutorial::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 35%; background: var(--primary); z-index: 0; }
-        .tpl-tutorial .tutorial-card { background: #fff; border-radius: 20px; flex: 1; z-index: 1; margin-top: 60px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 50px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; position: relative; }
-        .tpl-tutorial .cover-tag { position: absolute; top: -25px; background: #000; color: #fff; padding: 12px 30px; border-radius: 12px; font-size: 20px; font-weight: bold; }
-        .tpl-tutorial .cover-title { color: #333; font-size: 64px; font-weight: 900; line-height: 1.3; margin-bottom: 20px; }
-        .tpl-tutorial .cover-title span { color: var(--primary); }
-        .tpl-tutorial .cover-subtitle { font-size: 24px; color: #666; margin-top: 20px; border-top: 2px solid #eee; padding-top: 20px; width: 100%; }
-        .tpl-tutorial .cover-icon { font-size: 80px; margin-bottom: 20px; }
-        .tpl-emotion { background: linear-gradient(135deg, #111, #333); color: #fff; padding: 40px; justify-content: space-between; }
-        .tpl-emotion .emotion-top { display: flex; justify-content: space-between; align-items: flex-start; }
-        .tpl-emotion .cover-icon { font-size: 100px; background: rgba(255,255,255,0.1); border-radius: 20px; padding: 10px; backdrop-filter: blur(10px); }
-        .tpl-emotion .cover-date { font-size: 24px; font-family: monospace; opacity: 0.6; }
-        .tpl-emotion .cover-title { font-size: 80px; font-weight: 900; line-height: 1.1; margin-top: auto; margin-bottom: 40px; }
-        .tpl-emotion .cover-subtitle { font-size: 32px; color: var(--primary); font-weight: bold; background: rgba(0,0,0,0.5); padding: 15px; border-left: 8px solid var(--primary); }
+        .marketing-header strong {
+            color: var(--primary);
+            font-weight: 700;
+        }
 
-        /* === 正文设计样式 === */
-        .step-canvas { flex-direction: column; background: #fff; }
-        .step-header { padding: 30px 40px 15px; border-bottom: 4px solid var(--primary); display: flex; justify-content: space-between; align-items: baseline; }
-        .step-num { font-size: 72px; font-weight: 900; color: var(--primary); font-style: italic; line-height: 0.8; }
-        .step-header-text { text-align: right; }
-        .step-header-en { font-size: 14px; font-weight: 700; text-transform: uppercase; color: #000; letter-spacing: 1px; }
-        .step-header-title { font-size: 24px; font-weight: 800; color: #000; margin-top: 4px; }
-        
-        .step-body { padding: 30px 40px; flex: 1; }
-        
-        /* 时间轴布局 */
-        .step-item { 
-            display: flex; 
-            margin-bottom: 25px; 
+        /* 二维码悬停容器和样式 (优化 3) */
+        .marketing-header .marketing-item {
             position: relative;
-            align-items: stretch; 
+            display: flex;
+            align-items: center;
+            cursor: default;
         }
-        .step-left { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            width: 30px; 
-            margin-right: 20px;
+
+        .marketing-header .qr-code-box {
+            position: absolute;
+            top: 100%;
+            /* 位置在文本下方 */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            padding: 10px;
+            background: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            display: none;
+            /* 默认隐藏 */
+            pointer-events: none;
+            margin-top: 5px;
+            white-space: nowrap;
+            /* 防止内容折行 */
+        }
+
+        .marketing-header .qr-code-box img {
+            width: 120px;
+            height: 120px;
+            display: block;
+        }
+
+        .marketing-header .marketing-item:hover .qr-code-box {
+            display: block;
+        }
+
+
+        /* 布局框架 (优化 1: flex: 1 确保填充剩余高度) */
+        .app-container {
+            display: flex;
+            flex: 1;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: 100%;
+            height: 0;
+        }
+
+        /* 左侧配置栏 */
+        .config-panel {
+            width: 460px;
+            background: #fff;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
             flex-shrink: 0;
         }
-        .step-idx { 
-            width: 30px; 
-            height: 30px; 
-            background: var(--primary); 
-            color: #fff; 
-            border-radius: 50%; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            font-weight: bold; 
-            flex-shrink: 0; 
-            z-index: 1; 
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
         }
+
+        .tab-group {
+            display: flex;
+            background: #f0f0f0;
+            padding: 4px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            border: none;
+            background: none;
+            padding: 8px 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            color: #666;
+            transition: 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #fff;
+            color: var(--primary);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .config-section {
+            display: none;
+        }
+
+        .config-section.active {
+            display: block;
+        }
+
+        /* 表单组件 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: #555;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        /* Textarea 增高 */
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: 0.2s;
+            min-height: 45px;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+
+        /* 颜色选择 */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+        }
+
+        .color-dot {
+            padding-bottom: 100%;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+        }
+
+        .color-dot.active {
+            transform: scale(1.1);
+            border-color: #333;
+        }
+
+        /* 表情选择器 */
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+
+        .emoji-btn {
+            border: none;
+            background: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .emoji-btn:hover {
+            background: #eee;
+        }
+
+        /* 模板选择卡片 */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .template-card {
+            border: 2px solid #eee;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .template-card.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .template-preview-box {
+            height: 40px;
+            background: #ddd;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+
+        /* 右侧预览区 */
+        .preview-area {
+            flex: 1;
+            background: #E1E4E8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            overflow: hidden;
+        }
+
+        /* 核心定位 */
+        .canvas-wrapper {
+            position: relative;
+            width: var(--card-w);
+            height: var(--card-h);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+            overflow: hidden;
+            transform-origin: center center;
+        }
+
+        /* 画布通用 */
+        .xhs-canvas {
+            width: var(--card-w);
+            height: var(--card-h);
+            background: #fff;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .xhs-canvas.active {
+            display: flex;
+        }
+
+        /* 图片制作画布样式 (优化 2) */
+        .image-canvas {
+            flex-direction: column;
+            background: #fff;
+            padding: 40px;
+            justify-content: space-between;
+            /* 确保 footer 到底部 */
+        }
+
+        .image-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1.3;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #eee;
+            padding-bottom: 15px;
+        }
+
+        .image-body {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            /* 为滚动条留出空间 */
+            margin-bottom: 20px;
+        }
+
+        /* 组件样式 - 继承自教程页，但在图片页强化 */
+        .image-canvas .comp-option {
+            margin-bottom: 15px;
+        }
+
+        .image-canvas .comp-option .option-bullet {
+            background: var(--primary);
+            /* 使用主题色 */
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .image-canvas .comp-option .option-text {
+            font-size: 18px !important;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* 通用 Textarea 样式 */
+        .cover-canvas .cover-title,
+        .cover-canvas .cover-subtitle,
+        .cover-canvas .cover-body {
+            white-space: pre-wrap;
+        }
+
+        /* 步骤编辑器样式 */
+        .block-item textarea.form-control {
+            padding: 5px;
+            font-size: 12px;
+            height: auto;
+            min-height: 40px;
+            /* 提升最小高度 */
+            overflow-y: hidden;
+            resize: none;
+            flex-grow: 1;
+        }
+
+        /* [省略其他未修改的画布样式，如 tpl-thinking, tutorial-canvas 等] */
+        /* === 封面设计样式 === */
+        .cover-canvas {
+            flex-direction: column;
+            color: #fff;
+        }
+
+        .tpl-thinking {
+            background: var(--primary);
+            align-items: center;
+            padding: 60px;
+            text-align: center;
+        }
+
+        .tpl-thinking .cover-icon {
+            font-size: 120px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
+        }
+
+        .tpl-thinking .cover-title {
+            font-size: 72px;
+            font-weight: 900;
+            line-height: 1.2;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .tpl-thinking .cover-subtitle {
+            background: #fff;
+            color: var(--primary);
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 28px;
+            font-weight: 700;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tpl-tutorial {
+            background: #f5f5f7;
+            padding: 40px;
+            justify-content: flex-start;
+        }
+
+        .tpl-tutorial::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 35%;
+            background: var(--primary);
+            z-index: 0;
+        }
+
+        .tpl-tutorial .tutorial-card {
+            background: #fff;
+            border-radius: 20px;
+            flex: 1;
+            z-index: 1;
+            margin-top: 60px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .tpl-tutorial .cover-tag {
+            position: absolute;
+            top: -25px;
+            background: #000;
+            color: #fff;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .tpl-tutorial .cover-title {
+            color: #333;
+            font-size: 64px;
+            font-weight: 900;
+            line-height: 1.3;
+            margin-bottom: 20px;
+        }
+
+        .tpl-tutorial .cover-title span {
+            color: var(--primary);
+        }
+
+        .tpl-tutorial .cover-subtitle {
+            font-size: 24px;
+            color: #666;
+            margin-top: 20px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+            width: 100%;
+        }
+
+        .tpl-emotion {
+            background: linear-gradient(135deg, #111, #333);
+            color: #fff;
+            padding: 40px;
+            flex-direction: column;
+        }
+
+        .tpl-emotion .cover-title {
+            font-size: 80px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-top: auto;
+            margin-bottom: 40px;
+        }
+
+        .tpl-contrast {
+            background: #fff;
+            color: #333;
+            padding: 40px;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .tpl-contrast .cover-title {
+            font-size: 40px;
+            font-weight: 900;
+            color: var(--primary);
+            line-height: 1.3;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .tpl-contrast-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding-bottom: 40px;
+        }
+
+        .contrast-col-label {
+            font-size: 20px;
+            font-weight: 800;
+            text-align: center;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        .contrast-col-right .contrast-col-label {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .contrast-col-body {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #444;
+            white-space: pre-wrap;
+        }
+
+        /* 教程画布样式 - 保持不变 */
+        .tutorial-canvas {
+            flex-direction: column;
+            background: #fff;
+        }
+
+        .step-header {
+            padding: 30px 40px 15px;
+            border-bottom: 4px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .step-num {
+            font-size: 72px;
+            font-weight: 900;
+            color: var(--primary);
+            font-style: italic;
+            line-height: 0.8;
+        }
+
+        .step-header-text {
+            text-align: right;
+        }
+
+        .step-header-en {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #000;
+            letter-spacing: 1px;
+        }
+
+        .step-header-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #000;
+            margin-top: 4px;
+        }
+
+        .step-body {
+            padding: 30px 40px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .step-item {
+            display: flex;
+            margin-bottom: 35px;
+            position: relative;
+            align-items: stretch;
+        }
+
+        .step-left {
+            width: 30px;
+            margin-right: 20px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .step-idx {
+            width: 30px;
+            height: 30px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            flex-shrink: 0;
+            z-index: 1;
+        }
+
         .step-line-segment {
-            flex-grow: 1; 
+            flex-grow: 1;
             width: 2px;
             background: #eee;
-            margin-top: 5px; 
-            margin-bottom: -5px; 
+            margin-top: 5px;
+            margin-bottom: -5px;
         }
-        .step-item:last-child .step-line-segment {
-            display: none; 
-        }
-        .step-right { flex: 1; }
 
-        /* === 组件样式 === */
-        
-        /* 提示词块 */
-        .comp-prompt { 
-            background: #f8f9fa; 
-            border-left: 4px solid var(--primary); 
-            padding: 12px; 
-            font-family: monospace; 
-            font-size: 13px; 
-            color: #444; 
-            margin-top: 6px; 
-            white-space: pre-wrap; 
+        .step-item:last-child .step-line-segment {
+            display: none;
+        }
+
+        .step-right {
+            flex: 1;
+        }
+
+        .step-right div[style*="font-size:17px"] {
+            font-size: 17px !important;
+            line-height: 1.6;
+        }
+
+        /* 组件样式 */
+        .comp-prompt {
+            background: #f8f9fa;
+            border-left: 4px solid var(--primary);
+            padding: 12px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #444;
+            margin-top: 6px;
+            white-space: pre-wrap;
             word-break: break-all;
         }
-        
-        /* 图片块 */
-        .comp-img { border: 1px solid #eee; border-radius: 6px; overflow: hidden; margin-top: 6px; }
-        .comp-img img { width: 100%; display: block; }
 
-        /* 标签 */
-        .comp-tag { display: inline-block; background: var(--primary-light); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-right: 5px; }
+        .comp-img {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
 
-        /* 选项/列表 */
+        .comp-img img {
+            width: 100%;
+            display: block;
+        }
+
         .comp-option {
             display: flex;
             align-items: flex-start;
-            margin-top: 6px;
+            margin-top: 10px;
         }
+
         .comp-option .option-bullet {
             width: 18px;
             height: 18px;
@@ -199,16 +681,16 @@
             flex-shrink: 0;
             font-weight: bold;
         }
+
         .comp-option .option-text {
-            font-size: 15px;
-            line-height: 1.5;
+            font-size: 17px;
+            line-height: 1.6;
         }
-        
-        /* 提示、成功、警告状态块 */
+
         .comp-status-box {
             padding: 15px;
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: 600;
             margin-top: 6px;
             line-height: 1.5;
@@ -216,305 +698,702 @@
             word-break: break-all;
         }
 
-        /* 贴士 (Tip) */
         .comp-tip {
-            background: var(--primary-light); 
+            background: var(--primary-light);
             border: 1px solid var(--primary);
             color: var(--primary);
         }
-        
-        /* 成功 (Success) */
+
         .comp-success {
-            background: rgba(0, 196, 140, 0.1); 
+            background: rgba(0, 196, 140, 0.1);
             border: 1px solid #00C48C;
             color: #00C48C;
         }
 
-        /* 警告 (Warning) */
         .comp-warning {
-            background: rgba(255, 125, 0, 0.1); 
+            background: rgba(255, 125, 0, 0.1);
             border: 1px solid #FF7D00;
             color: #FF7D00;
         }
 
+        /* 标签 */
+        .comp-tag {
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
 
         /* 导出遮罩 */
-        .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); color: #fff; display: none; justify-content: center; align-items: center; z-index: 100; flex-direction: column; gap: 15px; }
-        .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         /* 步骤编辑器样式 */
-        .step-edit-card { background: #fff; border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 6px; }
-        .step-top { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: bold; color: #666; cursor: move; }
-        .block-list { display: flex; flex-direction: column; gap: 5px; }
-        .block-item { display: flex; gap: 5px; align-items: flex-start; } /* 使用 flex-start 修复 textarea 顶部对齐问题 */
-        .block-btn-bar { margin-top: 8px; display: flex; gap: 5px; flex-wrap: wrap; }
-        .tiny-btn { font-size: 11px; padding: 3px 8px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; }
-        .tiny-btn:hover { color: var(--primary); border-color: var(--primary); }
-        
-        /* 核心修复：Textarea 自动高度样式 */
-        .block-item textarea.form-control {
-            padding: 5px; 
-            font-size: 12px; 
-            height: auto; 
-            min-height: 35px; /* 最小高度 */
-            overflow-y: hidden; 
-            resize: none; /* 禁用用户拖拽调整大小 */
+        .step-edit-card {
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 6px;
         }
 
+        .step-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #666;
+            cursor: move;
+        }
+
+        .block-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .block-item {
+            display: flex;
+            gap: 5px;
+            align-items: flex-start;
+        }
+
+        .block-item span {
+            font-size: 12px;
+            color: #999;
+            width: 60px;
+            cursor: move;
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+
+        .block-btn-bar {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+        .tiny-btn {
+            font-size: 11px;
+            padding: 3px 8px;
+            border: 1px solid #ddd;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .tiny-btn:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        /* 主文案样式 */
+.marketing-main {
+    display: inline-block;
+    margin-right: 12px;
+    font-weight: 500;
+    color: #333;
+}
+/* 每个联系项样式 */
+.marketing-item {
+    display: inline-block;
+    margin: 0 10px;
+    position: relative; /* 配合二维码弹窗定位 */
+}
+/* 提示文字样式 */
+.marketing-tip {
+    font-size: 12px;
+    color: #666;
+    margin-left: 4px;
+}
+/* 二维码盒子样式（悬停显示） */
+.qr-code-box {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    padding: 8px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: none;
+    z-index: 999;
+}
+/* 悬停显示二维码 */
+.marketing-item:hover .qr-code-box {
+    display: block;
+}
+/* 二维码图片样式 */
+.qr-code-box img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+}
     </style>
 </head>
+
 <body>
+    <div class="marketing-header" id="marketingHeader">
+    </div>
 
-<div class="app-container">
-    <div class="config-panel">
-        <div class="panel-header">
-            <h2 style="font-size:18px;">🎨 小红书全能工厂</h2>
-            <div class="tab-group" id="tabGroup">
-                <button class="tab-btn active" onclick="switchTab('cover', this)">封面设计</button>
-                <button class="tab-btn" onclick="switchTab('content', this)">正文制作</button>
+    <input type="file" id="localImageInput" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+
+    <div class="app-container">
+        <div class="config-panel">
+            <div class="panel-header">
+                <h2 style="font-size:18px;">🎨 小红书作图全能工厂 V10</h2>
+
+                <!-- <div class="form-group" style="margin-bottom: 15px; margin-top: 15px;">
+                <label class="form-label" style="margin-bottom: 5px;">引流信息设置 (显示在页面顶部)</label>
+                <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                    <input type="text" class="form-control" id="wechatId" placeholder="公众号 ID" value="公众号ID" style="padding: 6px; min-height: 38px;">
+                    <input type="text" class="form-control" id="xhsId" placeholder="小红书 ID" value="小红书ID" style="padding: 6px; min-height: 38px;">
+                </div>
+                <label class="form-label" style="font-size: 11px; font-weight: normal; margin-bottom: 5px; color:#888;">二维码图片URL (鼠标悬停显示)</label>
+                 <div style="display:flex; gap:10px;">
+                    <input type="text" class="form-control" id="wechatQr" placeholder="公众号二维码 URL" value="https://i.ibb.co/L5hY67g/wechat-qr-placeholder.png" style="padding: 6px; min-height: 38px;">
+                    <input type="text" class="form-control" id="xhsQr" placeholder="小红书二维码 URL" value="https://i.ibb.co/hK7J01d/xhs-qr-placeholder.png" style="padding: 6px; min-height: 38px;">
+                </div>
+            </div> -->
+
+                <div class="tab-group" id="tabGroup">
+                    <button class="tab-btn active" onclick="switchTab('cover', this)">封面设计</button>
+                    <button class="tab-btn" onclick="switchTab('tutorial', this)">教程步骤</button>
+                    <button class="tab-btn" onclick="switchTab('image', this)">图片制作</button>
+                </div>
+            </div>
+
+            <div class="panel-body">
+                <div class="form-group">
+                    <label class="form-label">主题配色 (支持自定义)</label>
+                    <div class="color-grid" id="themeColors"></div>
+                    <div style="display:flex; gap:10px; margin-top:15px; align-items:center;">
+                        <input type="color" id="customColorPicker" value="#2A00FF"
+                            style="width:40px; height:40px; padding:0; border:none; cursor:pointer;">
+                        <input type="text" class="form-control" id="customColorHex" value="#2A00FF"
+                            placeholder="输入 Hex 颜色代码" style="flex:1; min-height: 38px;">
+                    </div>
+                </div>
+
+                <div id="config-cover" class="config-section active">
+                    <div class="form-group">
+                        <label class="form-label">选择模板</label>
+                        <div class="template-grid">
+                            <div class="template-card" onclick="setCoverTemplate('thinking')">
+                                <div class="template-preview-box" style="background:var(--primary)"></div>
+                                思考专业
+                            </div>
+                            <div class="template-card" onclick="setCoverTemplate('tutorial')">
+                                <div class="template-preview-box" style="background:#eee; border:1px solid #ccc"></div>
+                                卡片教程
+                            </div>
+                            <div class="template-card" onclick="setCoverTemplate('emotion')">
+                                <div class="template-preview-box" style="background:linear-gradient(45deg,#111,#333)">
+                                </div>
+                                情绪大字
+                            </div>
+                            <div class="template-card" onclick="setCoverTemplate('contrast')">
+                                <div class="template-preview-box"
+                                    style="background:linear-gradient(90deg, #f9f9f9 50%, var(--primary-light) 50%); border:1px solid #ccc">
+                                </div>
+                                对比分析
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">封面主标题</label>
+                        <textarea class="form-control mb-2" id="coverTitle" placeholder="主标题 (如: 3分钟学会)"
+                            rows="3">DeepSeek</textarea>
+                    </div>
+
+                    <div class="form-group" id="coverSubtitleGroup">
+                        <label class="form-label">封面副标题 / 高亮</label>
+                        <textarea class="form-control mb-2" id="coverSubtitle" placeholder="副标题/高亮 (如: 附保姆级教程)"
+                            rows="3">生成专属提示词</textarea>
+                    </div>
+
+                    <div id="coverContrastGroup" style="display:none;">
+                        <label class="form-label">对比标签 & 内容</label>
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <input type="text" class="form-control" id="coverLeftLabel" value="错误做法" placeholder="左侧标签"
+                                style="flex:1; padding: 6px; min-height: 38px;">
+                            <input type="text" class="form-control" id="coverRightLabel" value="正确做法" placeholder="右侧标签"
+                                style="flex:1; padding: 6px; min-height: 38px;">
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <textarea class="form-control" id="coverSubtitleLeft" placeholder="左侧内容 (多行)" rows="5"
+                                style="flex:1;">内容 1\n内容 2\n内容 3</textarea>
+                            <textarea class="form-control" id="coverSubtitleRight" placeholder="右侧内容 (多行)" rows="5"
+                                style="flex:1;">内容 A\n内容 B\n内容 C</textarea>
+                        </div>
+                    </div>
+
+
+                    <div class="form-group">
+                        <label class="form-label">垂直位置 (仅思考/情绪模板)</label>
+                        <select class="form-control" id="coverAlign" onchange="updateCoverAlign(this.value)">
+                            <option value="center">居中 (默认)</option>
+                            <option value="flex-start">顶部</option>
+                            <option value="flex-end">底部</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">装饰图标 (Emoji)</label>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" class="form-control" id="coverIcon" value="🤖"
+                                style="width:60px; text-align:center; font-size:20px; min-height: 38px;">
+                            <div style="flex:1; font-size:12px; color:#999; display:flex; align-items:center;">点击下方快速选择
+                                👇</div>
+                        </div>
+                        <div class="emoji-grid" id="emojiPicker">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="config-tutorial" class="config-section">
+                    <div class="form-group">
+                        <label class="form-label">页眉设置</label>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" class="form-control" id="stepNum" value="01"
+                                style="width:60px; min-height: 38px;">
+                            <input type="text" class="form-control" id="stepTitle" value="生成专属提示词"
+                                style="min-height: 38px;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <label class="form-label">步骤内容</label>
+                            <button class="tiny-btn" style="background:var(--primary); color:#fff; border:none;"
+                                onclick="addStep('tutorial')">+ 加步骤</button>
+                        </div>
+                        <div id="tutorialStepsContainer">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">底部提醒</label>
+                        <textarea class="form-control" id="tutorialFooterText" rows="3">📌 建议收藏，随时查阅</textarea>
+                    </div>
+                </div>
+
+                <div id="config-image" class="config-section">
+                    <div class="form-group">
+                        <label class="form-label">卡片主标题</label>
+                        <textarea class="form-control" id="imageTitle" rows="3" placeholder="如：5个技巧帮你解决焦虑"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                            <label class="form-label">内容区块 (无步骤)</label>
+                            <button class="tiny-btn" style="background:var(--primary); color:#fff; border:none;"
+                                onclick="addStep('image')">+ 加区块</button>
+                        </div>
+                        <div id="imageBlocksContainer">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">卡片底部文字</label>
+                        <textarea class="form-control" id="imageFooterText" rows="3">🎉 快速行动，拒绝焦虑</textarea>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <div style="padding:20px; border-top:1px solid #eee; display:flex; gap:10px; flex-shrink: 0;">
+                <button class="form-control"
+                    style="background:var(--primary); color:#fff; font-weight:bold; border:none; min-height: 40px;"
+                    onclick="exportImage()">📸 导出当前图片</button>
             </div>
         </div>
 
-        <div class="panel-body">
-            <div class="form-group">
-                <label class="form-label">主题配色</label>
-                <div class="color-grid" id="themeColors"></div>
-            </div>
-
-            <div id="config-cover" class="config-section active">
-                <div class="form-group">
-                    <label class="form-label">选择模板</label>
-                    <div class="template-grid">
-                        <div class="template-card active" onclick="setCoverTemplate('thinking')">
-                            <div class="template-preview-box" style="background:var(--primary)"></div>
-                            思考专业
-                        </div>
-                        <div class="template-card" onclick="setCoverTemplate('tutorial')">
-                            <div class="template-preview-box" style="background:#eee; border:1px solid #ccc"></div>
-                            卡片教程
-                        </div>
-                        <div class="template-card" onclick="setCoverTemplate('emotion')">
-                            <div class="template-preview-box" style="background:linear-gradient(45deg,#333,#000)"></div>
-                            情绪大字
-                        </div>
-                    </div>
+        <div class="preview-area">
+            <div class="canvas-wrapper">
+                <div id="canvas-cover" class="xhs-canvas cover-canvas tpl-thinking active">
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">封面内容</label>
-                    <input type="text" class="form-control mb-2" id="coverTitle" placeholder="主标题 (如: 3分钟学会)" value="DeepSeek">
-                    <input type="text" class="form-control mb-2" id="coverSubtitle" placeholder="副标题/高亮 (如: 附保姆级教程)" value="生成专属提示词">
-                    <div style="margin-top:5px; font-size:12px; color:#999;">* 教程模板下，副标题显示在下方；思考模板下，副标题为胶囊样式</div>
+                <div id="canvas-tutorial" class="xhs-canvas tutorial-canvas">
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">装饰图标 (Emoji)</label>
-                    <div style="display:flex; gap:5px;">
-                        <input type="text" class="form-control" id="coverIcon" value="🤖" style="width:60px; text-align:center; font-size:20px;">
-                        <div style="flex:1; font-size:12px; color:#999; display:flex; align-items:center;">点击下方快速选择 👇</div>
-                    </div>
-                    <div class="emoji-grid" id="emojiPicker">
-                        </div>
+                <div id="canvas-image" class="xhs-canvas image-canvas">
                 </div>
             </div>
-
-            <div id="config-content" class="config-section">
-                <div class="form-group">
-                    <label class="form-label">页眉设置</label>
-                    <div style="display:flex; gap:10px;">
-                        <input type="text" class="form-control" id="stepNum" value="01" style="width:60px;">
-                        <input type="text" class="form-control" id="stepTitle" value="生成专属提示词">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                        <label class="form-label">步骤内容</label>
-                        <button class="tiny-btn" style="background:var(--primary); color:#fff; border:none;" onclick="addStep()">+ 加步骤</button>
-                    </div>
-                    <div id="stepsContainer">
-                        </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">底部提醒</label>
-                    <textarea class="form-control" id="footerText">📌 建议收藏，随时查阅</textarea>
-                </div>
-            </div>
-        </div>
-
-        <div style="padding:20px; border-top:1px solid #eee; display:flex; gap:10px;">
-            <button class="form-control" style="background:var(--primary); color:#fff; font-weight:bold; border:none;" onclick="exportImage()">📸 导出当前图片</button>
         </div>
     </div>
 
-    <div class="preview-area">
-        <div class="canvas-wrapper">
-            <div id="canvas-cover" class="xhs-canvas cover-canvas tpl-thinking active">
-                </div>
-            
-            <div id="canvas-content" class="xhs-canvas step-canvas">
-                </div>
-        </div>
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <p>正在生成高清大图...</p>
     </div>
-</div>
 
-<div class="loading-overlay" id="loading">
-    <div class="spinner"></div>
-    <p>正在生成高清大图...</p>
-</div>
+    <script>
+        // === 数据状态 ===
+        const state = {
+            theme: '#2A00FF',
+            tab: 'cover', // cover | tutorial | image
 
-<script>
-    // === 数据状态 ===
-    const state = {
-        theme: '#2A00FF',
-        tab: 'cover', // cover | content
-        cover: {
-            template: 'thinking', // thinking | tutorial | emotion
-            title: 'DeepSeek',
-            subtitle: '生成专属提示词',
-            icon: '🤖'
-        },
-        content: {
-            num: '01',
-            en: 'STEP ONE',
-            title: '生成专属提示词',
-            steps: [
-                { id: 1, blocks: [
-                    {type:'text', val:'打开 <span class="comp-tag">DeepSeek</span> 官网'},
-                    {type:'image', val:'https://picsum.photos/500/250'} 
-                ]},
-                { id: 2, blocks: [
-                    {type:'text', val:'复制下方提示词：'},
-                    {type:'prompt', val:'💻 提示词内容...'} 
-                ]},
-                { id: 3, blocks: [
-                    {type:'option', val:'第一步操作'},
-                    {type:'option', val:'第二步操作'},
-                    {type:'tip', val:'💡 重点：注意图片版权，建议使用自己截图'} 
-                ]},
-                { id: 4, blocks: [
-                    {type:'success', val:'✅ 恭喜：操作成功完成'},
-                    {type:'warning', val:'⚠️ 警告：请勿泄露个人信息'}
-                ]}
-            ],
-            footer: '📌 建议收藏，随时查阅'
-        }
-    };
+            // 推广信息 (优化 3: 增加二维码 URL)
+            marketing: {
+                wechat: '阿飞AI工具',
+                xhs: '阿飞AI工具',
+                wechatQr: 'http://afei-image.test.upcdn.net/qrcode_for_gh_cffc65e8a22b_344.jpg', // 公众号二维码占位图
+                xhsQr: 'http://afei-image.test.upcdn.net/xiaohongshu1.jpg'     // 小红书二维码占位图
+            },
 
-    const EMOJIS = ['🤖','✨','🔥','💡','📚','🎨','✅','⚠️','🌟','💬','📅','🚀','💻','📱','🎓','💼'];
-    const COLORS = ['#2A00FF', '#FF2442', '#00C48C', '#FF7D00', '#7B61FF', '#222222'];
+            cover: {
+                template: 'thinking',
+                title: 'DeepSeek',
+                subtitle: '生成专属提示词',
+                icon: '🤖',
+                align: 'center',
+                subtitleLeft: '内容 1\n内容 2\n内容 3',
+                subtitleRight: '内容 A\n内容 B\n内容 C',
+                leftLabel: '错误做法',
+                rightLabel: '正确做法'
+            },
 
-    // 完整的组件类型到中文标签映射
-    const BLOCK_TYPE_LABELS = {
-        'text': '📝 文本',
-        'prompt': '💻 提示词',
-        'image': '🖼️ 图片',
-        'option': '🔘 选项',
-        'tip': '💡 贴士',
-        'success': '✅ 成功',
-        'warning': '⚠️ 警告'
-    };
-    
-    // === 初始化 ===
-    document.addEventListener('DOMContentLoaded', () => {
-        initColors();
-        initEmojis();
-        renderStepsEditor();
-        renderAll();
+            tutorial: {
+                num: '01',
+                en: 'STEP ONE',
+                title: '生成专属提示词',
+                steps: [
+                    {
+                        id: 1, blocks: [
+                            { type: 'text', val: '打开 <span class="comp-tag">DeepSeek</span> 官网' },
+                            { type: 'image', val: 'https://picsum.photos/500/250' }
+                        ]
+                    },
+                ],
+                footer: '📌 建议收藏，随时查阅'
+            },
 
-        // 绑定输入监听
-        bindInput('coverTitle', (v) => { state.cover.title = v; renderCover(); });
-        bindInput('coverSubtitle', (v) => { state.cover.subtitle = v; renderCover(); });
-        bindInput('coverIcon', (v) => { state.cover.icon = v; renderCover(); });
-        bindInput('stepNum', (v) => { 
-            state.content.num = v; 
-            state.content.en = convertNumToEnglish(v); // 自动转换页眉英文
-            renderContent(); 
-        });
-        bindInput('stepTitle', (v) => { state.content.title = v; renderContent(); });
-        bindInput('footerText', (v) => { state.content.footer = v; renderContent(); });
-
-        // 步骤拖拽 (步骤卡片)
-        new Sortable(document.getElementById('stepsContainer'), {
-            handle: '.step-top',
-            animation: 150,
-            onEnd: () => {
-                updateStateFromDom();
+            image: {
+                title: '5个技巧帮你解决焦虑',
+                blocks: [
+                    {
+                        id: 1, blocks: [
+                            { type: 'option', val: '1. 尝试 10 分钟冥想' },
+                            { type: 'option', val: '2. 保证 7 小时深度睡眠' },
+                            { type: 'option', val: '3. 坚持每周 3 次锻炼' },
+                            { type: 'tip', val: '💡 贴士：行动起来是解决焦虑的最佳方法。' }
+                        ]
+                    },
+                ],
+                footer: '🎉 快速行动，拒绝焦虑'
             }
-        });
-    });
-
-    // === 核心逻辑：切换 Tab 和主题色 ===
-    function switchTab(tab, btn) {
-        state.tab = tab;
-        
-        // 1. 切换按钮状态
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        
-        // 2. 切换配置面板
-        document.querySelectorAll('.config-section').forEach(el => el.classList.remove('active'));
-        document.getElementById(`config-${tab}`).classList.add('active');
-
-        // 3. 切换预览画布 
-        document.getElementById('canvas-cover').classList.remove('active');
-        document.getElementById('canvas-content').classList.remove('active');
-        document.getElementById(`canvas-${tab}`).classList.add('active');
-    }
-
-    function setCoverTemplate(tpl) {
-        state.cover.template = tpl;
-        document.querySelectorAll('.template-card').forEach(el => el.classList.remove('active'));
-        event.currentTarget.classList.add('active');
-        renderCover();
-    }
-
-    function setTheme(color) {
-        state.theme = color;
-        // 自动计算一个浅色透明背景 for primary-light (10% opacity)
-        const hexToRgb = (hex) => {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '42, 0, 255';
         };
-        const rgb = hexToRgb(color);
-        const primaryLightRgba = `rgba(${rgb}, 0.1)`; 
 
-        document.documentElement.style.setProperty('--primary', color);
-        document.documentElement.style.setProperty('--primary-light', primaryLightRgba); 
+        const EMOJIS = ['🤖', '✨', '🔥', '💡', '📚', '🎨', '✅', '⚠️', '🌟', '💬', '📅', '🚀', '💻', '📱', '🎓', '💼'];
+        const COLORS = ['#2A00FF', '#FF2442', '#00C48C', '#FF7D00', '#7B61FF', '#222222'];
 
-        document.querySelectorAll('.color-dot').forEach(el => {
-            el.classList.toggle('active', el.dataset.color === color);
+        const BLOCK_TYPE_LABELS = {
+            'text': '📝 文本',
+            'prompt': '💻 提示词',
+            'image': '🖼️ 图片',
+            'option': '🔘 选项',
+            'tip': '💡 贴士',
+            'success': '✅ 成功',
+            'warning': '⚠️ 警告'
+        };
+
+        let currentStepIdxForUpload = -1;
+        let currentTabForUpload = '';
+
+        // === 工具函数：防抖动 ===
+        function debounce(func, delay) {
+            let timeout;
+            return function (...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
+        // === 初始化 ===
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化颜色和表情
+            initColors();
+            initEmojis();
+
+            // 初始化输入框内容和高度
+            document.getElementById('coverTitle').value = state.cover.title;
+            document.getElementById('coverSubtitle').value = state.cover.subtitle;
+            document.getElementById('coverSubtitleLeft').value = state.cover.subtitleLeft;
+            document.getElementById('coverSubtitleRight').value = state.cover.subtitleRight;
+            document.getElementById('imageTitle').value = state.image.title;
+            document.getElementById('tutorialFooterText').value = state.tutorial.footer;
+            document.getElementById('imageFooterText').value = state.image.footer;
+
+            // 推广信息输入框
+            // document.getElementById('wechatId').value = state.marketing.wechat;
+            // document.getElementById('xhsId').value = state.marketing.xhs;
+            // document.getElementById('wechatQr').value = state.marketing.wechatQr; // 绑定二维码URL
+            // document.getElementById('xhsQr').value = state.marketing.xhsQr;     // 绑定二维码URL
+
+            document.querySelectorAll('textarea').forEach(autoResizeTextarea);
+
+
+            renderEditors();
+
+            // 确保在 renderAll 之前调用 setCoverTemplate，以设置正确的模板 active 状态
+            setCoverTemplate(state.cover.template);
+            renderAll();
+
+            // 绑定输入监听
+            bindTextarea('coverTitle', (v) => { state.cover.title = v; renderCover(); });
+            bindTextarea('coverSubtitle', (v) => { state.cover.subtitle = v; renderCover(); });
+            bindTextarea('coverSubtitleLeft', (v) => { state.cover.subtitleLeft = v; renderCover(); });
+            bindTextarea('coverSubtitleRight', (v) => { state.cover.subtitleRight = v; renderCover(); });
+            bindInput('coverLeftLabel', (v) => { state.cover.leftLabel = v; renderCover(); });
+            bindInput('coverRightLabel', (v) => { state.cover.rightLabel = v; renderCover(); });
+            bindInput('coverIcon', (v) => { state.cover.icon = v; renderCover(); });
+
+            bindInput('stepNum', (v) => { state.tutorial.num = v; state.tutorial.en = convertNumToEnglish(v); renderTutorial(); });
+            bindInput('stepTitle', (v) => { state.tutorial.title = v; renderTutorial(); });
+            bindTextarea('tutorialFooterText', (v) => { state.tutorial.footer = v; renderTutorial(); });
+
+            bindTextarea('imageTitle', (v) => { state.image.title = v; renderImage(); });
+            bindTextarea('imageFooterText', (v) => { state.image.footer = v; renderImage(); });
+
+            // 推广信息 (绑定时更新页面顶部显示)
+            // bindInput('wechatId', (v) => { state.marketing.wechat = v; renderMarketingHeader(); });
+            // bindInput('xhsId', (v) => { state.marketing.xhs = v; renderMarketingHeader(); });
+            // bindInput('wechatQr', (v) => { state.marketing.wechatQr = v; renderMarketingHeader(); }); // 绑定二维码 URL
+            // bindInput('xhsQr', (v) => { state.marketing.xhsQr = v; renderMarketingHeader(); });     // 绑定二维码 URL
+
+
+            // 拖拽初始化
+            new Sortable(document.getElementById('tutorialStepsContainer'), { handle: '.step-top', animation: 150, onEnd: () => { updateStateFromDom('tutorial'); } });
+            new Sortable(document.getElementById('imageBlocksContainer'), { handle: '.step-top', animation: 150, onEnd: () => { updateStateFromDom('image'); } });
+
+            renderMarketingHeader(); // 首次渲染推广信息栏
         });
-        renderAll();
-    }
 
-    // === 渲染逻辑：只管内容，不管显示状态 ===
+        // === 核心工具函数 ===
 
-    function renderAll() {
-        renderCover();
-        renderContent();
-    }
+        function autoResizeTextarea(textarea) {
+            if (!textarea) return;
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
 
-    function renderCover() {
-        const c = state.cover;
-        const el = document.getElementById('canvas-cover');
-        el.className = `xhs-canvas cover-canvas tpl-${c.template}`; 
+        function bindTextarea(id, callback) {
+            const el = document.getElementById(id);
+            el.addEventListener('input', (e) => {
+                autoResizeTextarea(e.target);
+                callback(e.target.value);
+            });
+            autoResizeTextarea(el);
+        }
 
-        let html = '';
-        if (c.template === 'thinking') {
-            html = `
+        function bindInput(id, callback) {
+            document.getElementById(id).addEventListener('input', (e) => callback(e.target.value));
+        }
+
+        // === 推广信息渲染 (更新为支持二维码) ===
+        function renderMarketingHeader() {
+            const el = document.getElementById('marketingHeader');
+            if (!el) return;
+
+            // 配置文案常量，便于后续统一修改
+            const config = {
+                mainText: '有问题？扫码/私信找我！',
+                wechatTip: '鼠标悬停显示二维码',
+                xhsTip: '悬停扫码/私信答疑',
+                wechatLabel: '公众号',
+                xhsLabel: '小红书'
+            };
+
+            const wechatHtml = state.marketing.wechat
+                ? `<span class="marketing-item">
+            <span class="marketing-label">${config.wechatLabel}: <strong>${state.marketing.wechat}</strong></span>
+            <span class="marketing-tip">${config.wechatTip}</span>
+            <div class="qr-code-box"><img src="${state.marketing.wechatQr}" alt="${state.marketing.wechat}二维码"></div>
+           </span>`
+                : '';
+
+            const xhsHtml = state.marketing.xhs
+                ? `<span class="marketing-item">
+            <span class="marketing-label"><i class="xhs-icon">📕</i>${config.xhsLabel}: <strong>${state.marketing.xhs}</strong></span>
+            <span class="marketing-tip">${config.xhsTip}</span>
+            <div class="qr-code-box"><img src="${state.marketing.xhsQr}" alt="${state.marketing.xhs}二维码"></div>
+           </span>`
+                : '';
+
+            el.innerHTML = `<span class="marketing-main">${config.mainText}</span>` + wechatHtml + xhsHtml;
+        }
+
+        // === 核心逻辑：切换 Tab 和主题色 ===
+        function switchTab(tab, btn) {
+            state.tab = tab;
+
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active'); // 确保 btn 存在
+
+            document.querySelectorAll('.config-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(`config-${tab}`).classList.add('active');
+
+            document.querySelectorAll('.xhs-canvas').forEach(el => el.classList.remove('active'));
+            document.getElementById(`canvas-${tab}`).classList.add('active');
+        }
+
+        function setCoverTemplate(tpl) {
+            state.cover.template = tpl;
+
+            document.querySelectorAll('.template-card').forEach(el => el.classList.remove('active'));
+
+            // 修复：不依赖全局 event 对象
+            const card = document.querySelector(`.template-card[onclick*="'${tpl}'"]`);
+            if (card) {
+                card.classList.add('active');
+            }
+
+            // 切换 Contrast 模板的输入字段显示
+            const isContrast = tpl === 'contrast';
+            const subtitleGroup = document.getElementById('coverSubtitleGroup');
+            const contrastGroup = document.getElementById('coverContrastGroup');
+
+            if (subtitleGroup) subtitleGroup.style.display = isContrast ? 'none' : 'block';
+            if (contrastGroup) contrastGroup.style.display = isContrast ? 'block' : 'none';
+
+            renderCover();
+        }
+
+        function updateCoverAlign(align) {
+            state.cover.align = align;
+            renderCover();
+        }
+
+        // 初始化颜色和设置主题
+        function initColors() {
+            const box = document.getElementById('themeColors');
+            COLORS.forEach(c => {
+                const d = document.createElement('div');
+                d.className = `color-dot ${c === state.theme ? 'active' : ''}`;
+                d.style.background = c;
+                d.dataset.color = c;
+                d.onclick = () => setTheme(c);
+                box.appendChild(d);
+            });
+
+            const picker = document.getElementById('customColorPicker');
+            const hexInput = document.getElementById('customColorHex');
+
+            // 绑定自定义颜色输入
+            picker.addEventListener('input', (e) => {
+                const color = e.target.value;
+                hexInput.value = color.toUpperCase();
+                setTheme(color);
+            });
+
+            hexInput.addEventListener('input', debounce((e) => {
+                const color = e.target.value.trim().toUpperCase();
+                if (/^#[0-9A-F]{6}$/i.test(color)) {
+                    picker.value = color;
+                    setTheme(color);
+                }
+            }, 300));
+
+            // 首次设置
+            setTheme(state.theme);
+        }
+
+        function setTheme(color) {
+            state.theme = color;
+            const hexToRgb = (hex) => {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '42, 0, 255';
+            };
+            const rgb = hexToRgb(color);
+            const primaryLightRgba = `rgba(${rgb}, 0.1)`;
+
+            document.documentElement.style.setProperty('--primary', color);
+            document.documentElement.style.setProperty('--primary-light', primaryLightRgba);
+
+            document.querySelectorAll('.color-dot').forEach(el => {
+                el.classList.toggle('active', el.dataset.color === color);
+            });
+
+            // 同步自定义颜色输入
+            const picker = document.getElementById('customColorPicker');
+            const hexInput = document.getElementById('customColorHex');
+            if (picker && hexInput) {
+                picker.value = color;
+                hexInput.value = color;
+            }
+
+            renderAll();
+        }
+
+        // === 渲染逻辑：内容 ===
+
+        function renderAll() {
+            renderCover();
+            renderTutorial();
+            renderImage();
+        }
+
+        function renderCover() {
+            const c = state.cover;
+            const el = document.getElementById('canvas-cover');
+            el.className = `xhs-canvas cover-canvas tpl-${c.template}`;
+
+            if (c.template === 'thinking' || c.template === 'emotion') {
+                el.style.justifyContent = c.align;
+            } else {
+                el.style.justifyContent = 'flex-start';
+            }
+
+            let html = '';
+            if (c.template === 'thinking') {
+                html = `
                 <div class="cover-icon">${c.icon}</div>
                 <div class="cover-title">${c.title}</div>
                 <div class="cover-subtitle">${c.subtitle}</div>
             `;
-        } else if (c.template === 'tutorial') {
-            const titleHtml = c.title.length > 2 
-                ? c.title.replace(/(.{2})$/, '<span>$1</span>') 
-                : `<span>${c.title}</span>`;
-            
-            html = `
+            } else if (c.template === 'tutorial') {
+                const titleHtml = c.title.length > 2
+                    ? c.title.replace(/(.{2})$/, '<span>$1</span>')
+                    : `<span>${c.title}</span>`;
+
+                html = `
                 <div class="tutorial-card">
                     <div class="cover-tag">保姆级教程</div>
                     <div class="cover-icon">${c.icon}</div>
@@ -522,9 +1401,9 @@
                     <div class="cover-subtitle">${c.subtitle}</div>
                 </div>
             `;
-        } else if (c.template === 'emotion') {
-            const date = new Date().toLocaleDateString('zh-CN', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
-            html = `
+            } else if (c.template === 'emotion') {
+                const date = new Date().toLocaleDateString('zh-CN', { year: '2-digit', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
+                html = `
                 <div class="emotion-top">
                     <div class="cover-icon">${c.icon}</div>
                     <div class="cover-date">${date}</div>
@@ -534,40 +1413,53 @@
                     <div class="cover-subtitle">${c.subtitle}</div>
                 </div>
             `;
+            } else if (c.template === 'contrast') {
+                html = `
+                <div class="cover-title">${c.title}</div>
+                <div class="tpl-contrast-grid">
+                    <div class="contrast-col contrast-col-left">
+                        <div class="contrast-col-label">${c.leftLabel}</div>
+                        <div class="contrast-col-body">${c.subtitleLeft}</div>
+                    </div>
+                    <div class="contrast-col contrast-col-right">
+                        <div class="contrast-col-label">${c.rightLabel}</div>
+                        <div class="contrast-col-body">${c.subtitleRight}</div>
+                    </div>
+                </div>
+            `;
+            }
+            el.innerHTML = html;
+            el.style.display = 'flex';
         }
-        el.innerHTML = html;
-        el.style.display = 'flex'; 
-    }
 
-    function renderContent() {
-        const c = state.content;
-        
-        const currentSteps = state.content.steps.slice(); 
-        
-        const listHtml = currentSteps.map((step, i) => {
-            const blocks = step.blocks.map(b => {
-                const valWithBreaks = b.val.replace(/\n/g, '<br>');
-                
-                if(b.type === 'text') return `<div style="font-size:15px; margin-bottom:4px; line-height:1.5;">${valWithBreaks}</div>`;
-                if(b.type === 'prompt') return `<div class="comp-prompt">${valWithBreaks}</div>`;
-                if(b.type === 'image') return `<div class="comp-img"><img src="${b.val}"></div>`;
-                if(b.type === 'tip') return `<div class="comp-status-box comp-tip">💡 ${valWithBreaks}</div>`;
-                // 新增组件渲染
-                if(b.type === 'option') return `
+        function renderTutorial() {
+            const c = state.tutorial;
+
+            const currentSteps = state.tutorial.steps.slice();
+
+            const listHtml = currentSteps.map((step, i) => {
+                const blocks = step.blocks.map(b => {
+                    const valWithBreaks = b.val.replace(/\n/g, '<br>');
+
+                    if (b.type === 'text') return `<div style="font-size:17px; margin-bottom:4px; line-height:1.6;">${valWithBreaks}</div>`;
+                    if (b.type === 'prompt') return `<div class="comp-prompt">${valWithBreaks}</div>`;
+                    if (b.type === 'image') return `<div class="comp-img"><img src="${b.val}"></div>`;
+                    if (b.type === 'tip') return `<div class="comp-status-box comp-tip">${valWithBreaks}</div>`;
+                    if (b.type === 'option') return `
                     <div class="comp-option">
                         <div class="option-bullet">🔘</div>
                         <div class="option-text">${valWithBreaks}</div>
                     </div>`;
-                if(b.type === 'success') return `<div class="comp-status-box comp-success">${valWithBreaks}</div>`;
-                if(b.type === 'warning') return `<div class="comp-status-box comp-warning">${valWithBreaks}</div>`;
-                
-                return '';
-            }).join('');
+                    if (b.type === 'success') return `<div class="comp-status-box comp-success">${valWithBreaks}</div>`;
+                    if (b.type === 'warning') return `<div class="comp-status-box comp-warning">${valWithBreaks}</div>`;
 
-            return `
+                    return '';
+                }).join('');
+
+                return `
                 <div class="step-item">
                     <div class="step-left">
-                        <div class="step-idx">${i+1}</div>
+                        <div class="step-idx">${i + 1}</div>
                         <div class="step-line-segment"></div>
                     </div>
                     <div class="step-right">
@@ -575,9 +1467,9 @@
                     </div>
                 </div>
             `;
-        }).join('');
+            }).join('');
 
-        document.getElementById('canvas-content').innerHTML = `
+            document.getElementById('canvas-tutorial').innerHTML = `
             <div class="step-header">
                 <div class="step-num">${c.num}</div>
                 <div class="step-header-text">
@@ -592,197 +1484,283 @@
                 ${c.footer}
             </div>
         `;
-    }
+        }
 
-    // === 编辑器构建 (与状态同步) ===
+        // 优化 2: 图片制作预览区渲染
+        function renderImage() {
+            const c = state.image;
 
-    function renderStepsEditor() {
-        const div = document.getElementById('stepsContainer');
-        div.innerHTML = '';
-        state.content.steps.forEach((step, sIdx) => {
-            const blockInputs = step.blocks.map((b, bIdx) => {
-                const typeLabel = BLOCK_TYPE_LABELS[b.type] || b.type;
-                
-                return `
-                <div class="block-item" data-block-type="${b.type}" data-block-id="${step.id}-${bIdx}">
-                    <span style="font-size:12px; color:#999; width:30px; cursor:move; flex-shrink:0; margin-top: 5px;">${typeLabel}</span>
-                    <textarea class="form-control" 
-                              oninput="updateBlock(${sIdx}, ${bIdx}, this.value); autoResizeTextarea(this);">${b.val}</textarea>
-                    <button class="tiny-btn" style="color:red; flex-shrink:0;" onclick="removeBlock(${sIdx}, ${bIdx})">×</button>
-                </div>
-            `;
+            const listHtml = c.blocks.map(step => {
+                return step.blocks.map(b => {
+                    const valWithBreaks = b.val.replace(/\n/g, '<br>');
+
+                    if (b.type === 'text') return `<div style="font-size:17px; line-height:1.6; color:#444;">${valWithBreaks}</div>`;
+                    if (b.type === 'prompt') return `<div class="comp-prompt">${valWithBreaks}</div>`;
+                    if (b.type === 'image') return `<div class="comp-img"><img src="${b.val}"></div>`;
+                    if (b.type === 'tip') return `<div class="comp-status-box comp-tip">${valWithBreaks}</div>`;
+                    if (b.type === 'option') return `
+                    <div class="comp-option">
+                        <div class="option-bullet" style="background: var(--primary);">✔</div> 
+                        <div class="option-text" style="font-size: 18px; font-weight: 600;">${valWithBreaks}</div>
+                    </div>`;
+                    if (b.type === 'success') return `<div class="comp-status-box comp-success">${valWithBreaks}</div>`;
+                    if (b.type === 'warning') return `<div class="comp-status-box comp-warning">${valWithBreaks}</div>`;
+
+                    return '';
+                }).join('');
             }).join('');
 
-            const card = document.createElement('div');
-            card.className = 'step-edit-card';
-            card.dataset.stepId = step.id; 
-            card.innerHTML = `
+
+            document.getElementById('canvas-image').innerHTML = `
+            <div class="image-title">${c.title}</div>
+            <div class="image-body">
+                ${listHtml}
+            </div>
+            <div style="background:var(--primary); color:#fff; padding:20px 40px; font-size:16px; font-weight:600; text-align:center; flex-shrink: 0;">
+                ${c.footer}
+            </div>
+        `;
+        }
+
+        // === 编辑器构建 (与状态同步) ===
+
+        function renderEditors() {
+            renderStepsEditor('tutorial', state.tutorial.steps, 'tutorialStepsContainer');
+            renderStepsEditor('image', state.image.blocks, 'imageBlocksContainer', false);
+        }
+
+        function renderStepsEditor(tab, steps, containerId, isStep = true) {
+            const div = document.getElementById(containerId);
+            div.innerHTML = '';
+
+            steps.forEach((step, sIdx) => {
+                const blockInputs = step.blocks.map((b, bIdx) => {
+                    const typeLabel = BLOCK_TYPE_LABELS[b.type] || b.type;
+
+                    const isBase64 = b.val.startsWith('data:image/');
+                    const displayVal = isBase64 ? `[已上传本地图片: ${b.fileName || '未知文件名'}]` : b.val;
+
+                    return `
+                <div class="block-item" data-block-type="${b.type}" data-block-id="${step.id}-${bIdx}">
+                    <span style="font-size:12px; color:#999; width:60px; cursor:move; flex-shrink:0; margin-top: 5px;">${typeLabel}</span>
+                    <textarea class="form-control" 
+                              oninput="updateBlock('${tab}', ${sIdx}, ${bIdx}, this.value); autoResizeTextarea(this);">${displayVal}</textarea>
+                    <button class="tiny-btn" style="color:red; flex-shrink:0;" onclick="removeBlock('${tab}', ${sIdx}, ${bIdx})">×</button>
+                </div>
+            `;
+                }).join('');
+
+                const card = document.createElement('div');
+                card.className = 'step-edit-card';
+                card.dataset.stepId = step.id;
+                card.innerHTML = `
                 <div class="step-top">
-                    <span>步骤 ${sIdx + 1}</span>
-                    <button class="tiny-btn" onclick="removeStep(${sIdx})">删除</button>
+                    <span>${isStep ? '步骤' : '区块'} ${sIdx + 1}</span>
+                    <button class="tiny-btn" onclick="removeStep('${tab}', ${sIdx})">删除</button>
                 </div>
                 <div class="block-list" data-step-index="${sIdx}">${blockInputs}</div>
                 <div class="block-btn-bar">
-                    <button class="tiny-btn" onclick="addBlock(${sIdx}, 'text')">📝 文本</button>
-                    <button class="tiny-btn" onclick="addBlock(${sIdx}, 'prompt')">💻 提示词</button>
-                    <button class="tiny-btn" onclick="addBlock(${sIdx}, 'image')">🖼️ 图片</button>
-                    <button class="tiny-btn" onclick="addBlock(${sIdx}, 'option')">🔘 选项</button>
-                    <button class="tiny-btn" style="background:#fff3e0;" onclick="addBlock(${sIdx}, 'tip')">💡 贴士</button>
-                    <button class="tiny-btn" style="background:#e6ffed;" onclick="addBlock(${sIdx}, 'success')">✅ 成功</button>
-                    <button class="tiny-btn" style="background:#fff8e1;" onclick="addBlock(${sIdx}, 'warning')">⚠️ 警告</button>
+                    <button class="tiny-btn" onclick="addBlock('${tab}', ${sIdx}, 'text')">📝 文本</button>
+                    <button class="tiny-btn" onclick="addBlock('${tab}', ${sIdx}, 'prompt')">💻 提示词</button>
+                    <button class="tiny-btn" onclick="addBlock('${tab}', ${sIdx}, 'image-url')">🖼️ 图片 (URL)</button>
+                    <button class="tiny-btn" style="background:#f0f0f0;" onclick="triggerLocalImageUpload('${tab}', ${sIdx})">⬆️ 本地上传</button>
+                    <button class="tiny-btn" onclick="addBlock('${tab}', ${sIdx}, 'option')">🔘 选项</button>
+                    <button class="tiny-btn" style="background:#fff3e0;" onclick="addBlock('${tab}', ${sIdx}, 'tip')">💡 贴士</button>
+                    <button class="tiny-btn" style="background:#e6ffed;" onclick="addBlock('${tab}', ${sIdx}, 'success')">✅ 成功</button>
+                    <button class="tiny-btn" style="background:#fff8e1;" onclick="addBlock('${tab}', ${sIdx}, 'warning')">⚠️ 警告</button>
                 </div>
             `;
-            div.appendChild(card);
-            
-            new Sortable(card.querySelector('.block-list'), {
-                animation: 150,
-                group: 'blocks',
-                handle: 'span',
-                onEnd: () => {
-                    updateStateFromDom();
-                }
+                div.appendChild(card);
+
+                new Sortable(card.querySelector('.block-list'), { animation: 150, group: 'blocks', handle: 'span', onEnd: () => { updateStateFromDom(tab); } });
+
+                // 增强：确保新创建的 textarea 立即应用 autoResizeTextarea
+                card.querySelectorAll('textarea').forEach(autoResizeTextarea);
             });
+        }
 
-            // 初始时调整所有 textarea 高度
-            card.querySelectorAll('textarea').forEach(textarea => {
-                autoResizeTextarea(textarea);
-            });
-        });
-    }
 
-    // 核心工具函数：自动调整 Textarea 高度
-    function autoResizeTextarea(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = textarea.scrollHeight + 'px';
-    }
+        // === 图片上传/状态同步等辅助函数 [保持不变] ===
+        function triggerLocalImageUpload(tab, sIdx) {
+            currentTabForUpload = tab;
+            currentStepIdxForUpload = sIdx;
+            document.getElementById('localImageInput').click();
+        }
 
-    // === 状态同步操作 (用于拖拽) ===
+        function handleImageUpload(e) {
+            const file = e.target.files[0];
+            if (!file || currentStepIdxForUpload === -1) return;
 
-    function updateStateFromDom() {
-        const newSteps = [];
-        document.querySelectorAll('.step-edit-card').forEach((stepCard) => {
-            const blocks = [];
-            stepCard.querySelectorAll('.block-item').forEach(blockItem => {
-                const type = blockItem.dataset.blockType;
-                const val = blockItem.querySelector('textarea').value;
-                blocks.push({ type, val });
-            });
-            
-            const oldStep = state.content.steps.find(s => s.id == stepCard.dataset.stepId);
-            newSteps.push({ 
-                id: oldStep ? oldStep.id : Date.now(), 
-                blocks 
-            });
-        });
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const base64Url = event.target.result;
 
-        state.content.steps = newSteps;
-        renderStepsEditor();
-        renderContent();
-    }
-    
-    // === 工具函数 (初始化和输入绑定等) ===
+                const targetSteps = state[currentTabForUpload].steps || state[currentTabForUpload].blocks;
 
-    function initColors() {
-        const box = document.getElementById('themeColors');
-        COLORS.forEach(c => {
-            const d = document.createElement('div');
-            d.className = `color-dot ${c === state.theme ? 'active' : ''}`;
-            d.style.background = c;
-            d.dataset.color = c;
-            d.onclick = () => setTheme(c);
-            box.appendChild(d);
-        });
-        setTheme(state.theme); // Initial theme setup
-    }
+                targetSteps[currentStepIdxForUpload].blocks.push({
+                    type: 'image',
+                    val: base64Url,
+                    fileName: file.name
+                });
 
-    function initEmojis() {
-        const box = document.getElementById('emojiPicker');
-        EMOJIS.forEach(e => {
-            const b = document.createElement('button');
-            b.className = 'emoji-btn';
-            b.innerText = e;
-            b.onclick = () => {
-                const iconInput = document.getElementById('coverIcon');
-                iconInput.value = e;
-                state.cover.icon = e;
-                renderCover();
+                renderEditors();
+                renderAll();
+
+                currentStepIdxForUpload = -1;
+                currentTabForUpload = '';
+                e.target.value = '';
             };
-            box.appendChild(b);
-        });
-    }
+            reader.readAsDataURL(file);
+        }
 
-    function bindInput(id, callback) {
-        document.getElementById(id).addEventListener('input', (e) => callback(e.target.value));
-    }
-    
-    function convertNumToEnglish(numStr) {
-        const num = parseInt(numStr, 10);
-        const map = {
-            1: 'ONE', 2: 'TWO', 3: 'THREE', 4: 'FOUR', 5: 'FIVE', 6: 'SIX', 7: 'SEVEN', 8: 'EIGHT', 9: 'NINE', 10: 'TEN'
-        };
-        // 简单处理，只支持 1-10
-        return 'STEP ' + (map[num] || numStr);
-    }
+        function updateStateFromDom(tab) {
+            const containerId = tab === 'tutorial' ? 'tutorialStepsContainer' : 'imageBlocksContainer';
+            const newSteps = [];
+            document.getElementById(containerId).querySelectorAll('.step-edit-card').forEach((stepCard) => {
+                const blocks = [];
+                stepCard.querySelectorAll('.block-item').forEach(blockItem => {
+                    const type = blockItem.dataset.blockType;
+                    const textarea = blockItem.querySelector('textarea');
+                    let val = textarea.value;
+                    let fileName = '';
 
-    function addStep() {
-        state.content.steps.push({ id: Date.now(), blocks: [{type:'text', val:'新步骤内容'}] });
-        renderStepsEditor();
-        renderContent();
-    }
-    
-    function removeStep(idx) {
-        state.content.steps.splice(idx, 1);
-        renderStepsEditor();
-        renderContent();
-    }
+                    const oldStepsSource = state[tab].steps || state[tab].blocks;
+                    const oldStep = oldStepsSource.find(s => s.id == stepCard.dataset.stepId);
+                    const oldBlock = oldStep ? oldStep.blocks.find(b => b.val === val || b.val.startsWith('data:image/')) : null;
 
-    function addBlock(sIdx, type) {
-        let val = '文本内容';
-        if (type === 'image') val = 'https://picsum.photos/500/200';
-        else if (type === 'prompt') val = '💻 提示词内容...';
-        else if (type === 'tip') val = '💡 重点：这个操作能节省你一半时间！';
-        else if (type === 'option') val = '选项内容，可作为列表使用';
-        else if (type === 'success') val = '✅ 完成：恭喜你成功解锁新技能！';
-        else if (type === 'warning') val = '⚠️ 注意：不要轻易泄露个人信息。';
+                    if (val.startsWith('[已上传本地图片:')) {
+                        if (oldBlock && oldBlock.val.startsWith('data:')) {
+                            val = oldBlock.val;
+                            fileName = oldBlock.fileName || val.match(/\[已上传本地图片:\s*(.*?)\]/)?.[1] || '';
+                        }
+                    } else if (oldBlock && oldBlock.val.startsWith('data:')) {
+                        fileName = '';
+                    }
 
-        state.content.steps[sIdx].blocks.push({ type, val });
-        renderStepsEditor();
-        renderContent();
-    }
+                    blocks.push({ type, val, fileName });
+                });
 
-    function removeBlock(sIdx, bIdx) {
-        state.content.steps[sIdx].blocks.splice(bIdx, 1);
-        renderStepsEditor();
-        renderContent();
-    }
+                const oldStepsSource = state[tab].steps || state[tab].blocks;
+                const oldStep = oldStepsSource.find(s => s.id == stepCard.dataset.stepId);
+                newSteps.push({
+                    id: oldStep ? oldStep.id : Date.now(),
+                    blocks
+                });
+            });
 
-    function updateBlock(sIdx, bIdx, val) {
-        state.content.steps[sIdx].blocks[bIdx].val = val;
-        renderContent();
-    }
-    
-    function exportImage() {
-        const loading = document.getElementById('loading');
-        loading.style.display = 'flex';
-        
-        const targetId = state.tab === 'cover' ? 'canvas-cover' : 'canvas-content';
-        const target = document.getElementById(targetId);
+            if (tab === 'tutorial') state.tutorial.steps = newSteps;
+            else if (tab === 'image') state.image.blocks = newSteps;
 
-        html2canvas(target, {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: state.tab === 'cover' && state.cover.template === 'emotion' ? null : '#ffffff'
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `小红书_${state.tab}_${Date.now()}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            loading.style.display = 'none';
-        }).catch(err => {
-            alert('导出失败，请检查图片是否允许跨域: ' + err);
-            loading.style.display = 'none';
-        });
-    }
-</script>
+            renderEditors();
+            renderAll();
+        }
+
+        function convertNumToEnglish(numStr) {
+            const num = parseInt(numStr, 10);
+            const map = { 1: 'ONE', 2: 'TWO', 3: 'THREE', 4: 'FOUR', 5: 'FIVE', 6: 'SIX', 7: 'SEVEN', 8: 'EIGHT', 9: 'NINE', 10: 'TEN' };
+            return 'STEP ' + (map[num] || numStr);
+        }
+
+        function addStep(tab) {
+            const targetSteps = tab === 'tutorial' ? state.tutorial.steps : state.image.blocks;
+            targetSteps.push({ id: Date.now(), blocks: [{ type: 'text', val: '新' + (tab === 'tutorial' ? '步骤' : '区块') + '内容' }] });
+            renderEditors();
+            renderAll();
+        }
+
+        function removeStep(tab, idx) {
+            const targetSteps = tab === 'tutorial' ? state.tutorial.steps : state.image.blocks;
+            targetSteps.splice(idx, 1);
+            renderEditors();
+            renderAll();
+        }
+
+        function addBlock(tab, sIdx, type) {
+            const targetSteps = tab === 'tutorial' ? state.tutorial.steps : state.image.blocks;
+
+            let val = '文本内容';
+            if (type === 'image-url') {
+                type = 'image'; val = 'https://picsum.photos/500/200'; // 明确图片类型
+            }
+            else if (type === 'prompt') {
+                val = '💻 提示词内容...';
+            }
+            else if (type === 'tip') {
+                val = '💡 重点：这个操作能节省你一半时间！';
+            }
+            else if (type === 'option') {
+                val = '选项内容，可作为列表使用';
+            }
+            else if (type === 'success') {
+                val = '✅ 完成：恭喜你成功解锁新技能！';
+            }
+            else if (type === 'warning') {
+                val = '⚠️ 注意：不要轻易泄露个人信息。';
+            }
+
+            targetSteps[sIdx].blocks.push({ type, val });
+            renderEditors();
+            renderAll();
+        }
+
+        function removeBlock(tab, sIdx, bIdx) {
+            const targetSteps = tab === 'tutorial' ? state.tutorial.steps : state.image.blocks;
+            targetSteps[sIdx].blocks.splice(bIdx, 1);
+            renderEditors();
+            renderAll();
+        }
+
+        function updateBlock(tab, sIdx, bIdx, val) {
+            const targetSteps = tab === 'tutorial' ? state.tutorial.steps : state.image.blocks;
+            targetSteps[sIdx].blocks[bIdx].val = val;
+            if (!val.startsWith('data:')) {
+                targetSteps[sIdx].blocks[bIdx].fileName = '';
+            }
+            renderAll();
+        }
+
+        function initEmojis() {
+            const box = document.getElementById('emojiPicker');
+            EMOJIS.forEach(e => {
+                const b = document.createElement('button');
+                b.className = 'emoji-btn';
+                b.innerText = e;
+                b.onclick = () => {
+                    const iconInput = document.getElementById('coverIcon');
+                    iconInput.value = e;
+                    state.cover.icon = e;
+                    renderCover();
+                };
+                box.appendChild(b);
+            });
+        }
+
+        // === 导出功能 ===
+
+        function exportImage() {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'flex';
+
+            const targetId = `canvas-${state.tab}`;
+            const target = document.getElementById(targetId);
+
+            html2canvas(target, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: (state.tab === 'cover' && state.cover.template === 'emotion') ? null : '#ffffff'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `小红书_${state.tab}_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                loading.style.display = 'none';
+            }).catch(err => {
+                alert('导出失败，请检查图片链接是否能访问或 Base64 图片数据是否正确: ' + err);
+                loading.style.display = 'none';
+            });
+        }
+    </script>
 </body>
+
 </html>
